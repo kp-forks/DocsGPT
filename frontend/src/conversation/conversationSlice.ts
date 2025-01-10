@@ -1,9 +1,13 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import store from '../store';
-import { fetchAnswerApi, fetchAnswerSteaming } from './conversationApi';
-import { Answer, ConversationState, Query, Status } from './conversationModels';
+
 import { getConversations } from '../preferences/preferenceApi';
 import { setConversations } from '../preferences/preferenceSlice';
+import store from '../store';
+import {
+  handleFetchAnswer,
+  handleFetchAnswerSteaming,
+} from './conversationHandlers';
+import { Answer, ConversationState, Query, Status } from './conversationModels';
 
 const initialState: ConversationState = {
   queries: [],
@@ -13,120 +17,147 @@ const initialState: ConversationState = {
 
 const API_STREAMING = import.meta.env.VITE_API_STREAMING === 'true';
 
-export const fetchAnswer = createAsyncThunk<Answer, { question: string }>(
-  'fetchAnswer',
-  async ({ question }, { dispatch, getState }) => {
-    const state = getState() as RootState;
-    if (state.preference) {
-      if (API_STREAMING) {
-        await fetchAnswerSteaming(
-          question,
-          state.preference.apiKey,
-          state.preference.selectedDocs!,
-          state.conversation.queries,
-          state.conversation.conversationId,
-          (event) => {
-            const data = JSON.parse(event.data);
+let abortController: AbortController | null = null;
+export function handleAbort() {
+  if (abortController) {
+    abortController.abort();
+    abortController = null;
+  }
+}
 
-            // check if the 'end' event has been received
-            if (data.type === 'end') {
-              // set status to 'idle'
-              dispatch(conversationSlice.actions.setStatus('idle'));
-              getConversations()
-                .then((fetchedConversations) => {
-                  dispatch(setConversations(fetchedConversations));
-                })
-                .catch((error) => {
-                  console.error('Failed to fetch conversations: ', error);
-                });
-            } else if (data.type === 'source') {
-              // check if data.metadata exists
-              let result;
-              if (data.metadata && data.metadata.title) {
-                const titleParts = data.metadata.title.split('/');
-                result = {
-                  title: titleParts[titleParts.length - 1],
-                  text: data.doc,
-                };
-              } else {
-                result = { title: data.doc, text: data.doc };
-              }
+export const fetchAnswer = createAsyncThunk<
+  Answer,
+  { question: string; indx?: number }
+>('fetchAnswer', async ({ question, indx }, { dispatch, getState }) => {
+  if (abortController) {
+    abortController.abort();
+  }
+  abortController = new AbortController();
+  const { signal } = abortController;
+
+  let isSourceUpdated = false;
+  const state = getState() as RootState;
+  if (state.preference) {
+    if (API_STREAMING) {
+      await handleFetchAnswerSteaming(
+        question,
+        signal,
+        state.preference.selectedDocs!,
+        state.conversation.queries,
+        state.conversation.conversationId,
+        state.preference.prompt.id,
+        state.preference.chunks,
+        state.preference.token_limit,
+        (event) => {
+          const data = JSON.parse(event.data);
+
+          if (data.type === 'end') {
+            dispatch(conversationSlice.actions.setStatus('idle'));
+            getConversations()
+              .then((fetchedConversations) => {
+                dispatch(setConversations(fetchedConversations));
+              })
+              .catch((error) => {
+                console.error('Failed to fetch conversations: ', error);
+              });
+            if (!isSourceUpdated) {
               dispatch(
                 updateStreamingSource({
-                  index: state.conversation.queries.length - 1,
-                  query: { sources: [result] },
-                }),
-              );
-            } else if (data.type === 'id') {
-              dispatch(
-                updateConversationId({
-                  query: { conversationId: data.id },
-                }),
-              );
-            } else {
-              const result = data.answer;
-              dispatch(
-                updateStreamingQuery({
-                  index: state.conversation.queries.length - 1,
-                  query: { response: result },
+                  index: indx ?? state.conversation.queries.length - 1,
+                  query: { sources: [] },
                 }),
               );
             }
-          },
-        );
-      } else {
-        const answer = await fetchAnswerApi(
-          question,
-          state.preference.apiKey,
-          state.preference.selectedDocs!,
-          state.conversation.queries,
-          state.conversation.conversationId,
-        );
-        if (answer) {
-          let sourcesPrepped = [];
-          sourcesPrepped = answer.sources.map((source: { title: string }) => {
-            if (source && source.title) {
-              const titleParts = source.title.split('/');
-              return {
-                ...source,
-                title: titleParts[titleParts.length - 1],
-              };
-            }
-            return source;
-          });
+          } else if (data.type === 'id') {
+            dispatch(
+              updateConversationId({
+                query: { conversationId: data.id },
+              }),
+            );
+          } else if (data.type === 'source') {
+            isSourceUpdated = true;
+            dispatch(
+              updateStreamingSource({
+                index: indx ?? state.conversation.queries.length - 1,
+                query: { sources: data.source ?? [] },
+              }),
+            );
+          } else if (data.type === 'error') {
+            // set status to 'failed'
+            dispatch(conversationSlice.actions.setStatus('failed'));
+            dispatch(
+              conversationSlice.actions.raiseError({
+                index: indx ?? state.conversation.queries.length - 1,
+                message: data.error,
+              }),
+            );
+          } else {
+            const result = data.answer;
+            dispatch(
+              updateStreamingQuery({
+                index: indx ?? state.conversation.queries.length - 1,
+                query: { response: result },
+              }),
+            );
+          }
+        },
+        indx,
+      );
+    } else {
+      const answer = await handleFetchAnswer(
+        question,
+        signal,
+        state.preference.selectedDocs!,
+        state.conversation.queries,
+        state.conversation.conversationId,
+        state.preference.prompt.id,
+        state.preference.chunks,
+        state.preference.token_limit,
+      );
+      if (answer) {
+        let sourcesPrepped = [];
+        sourcesPrepped = answer.sources.map((source: { title: string }) => {
+          if (source && source.title) {
+            const titleParts = source.title.split('/');
+            return {
+              ...source,
+              title: titleParts[titleParts.length - 1],
+            };
+          }
+          return source;
+        });
 
-          dispatch(
-            updateQuery({
-              index: state.conversation.queries.length - 1,
-              query: { response: answer.answer, sources: sourcesPrepped },
-            }),
-          );
-          dispatch(
-            updateConversationId({
-              query: { conversationId: answer.conversationId },
-            }),
-          );
-          dispatch(conversationSlice.actions.setStatus('idle'));
-          getConversations()
-            .then((fetchedConversations) => {
-              dispatch(setConversations(fetchedConversations));
-            })
-            .catch((error) => {
-              console.error('Failed to fetch conversations: ', error);
-            });
-        }
+        dispatch(
+          updateQuery({
+            index: indx ?? state.conversation.queries.length - 1,
+            query: { response: answer.answer, sources: sourcesPrepped },
+          }),
+        );
+        dispatch(
+          updateConversationId({
+            query: { conversationId: answer.conversationId },
+          }),
+        );
+        dispatch(conversationSlice.actions.setStatus('idle'));
+        getConversations()
+          .then((fetchedConversations) => {
+            dispatch(setConversations(fetchedConversations));
+          })
+          .catch((error) => {
+            console.error('Failed to fetch conversations: ', error);
+          });
       }
     }
-    return {
-      conversationId: null,
-      title: null,
-      answer: '',
-      query: question,
-      result: '',
-      sources: [],
-    };
-  },
-);
+  }
+  return {
+    conversationId: null,
+    title: null,
+    answer: '',
+    query: question,
+    result: '',
+    sources: [],
+  };
+});
 
 export const conversationSlice = createSlice({
   name: 'conversation',
@@ -138,18 +169,28 @@ export const conversationSlice = createSlice({
     setConversation(state, action: PayloadAction<Query[]>) {
       state.queries = action.payload;
     },
+    resendQuery(
+      state,
+      action: PayloadAction<{ index: number; prompt: string; query?: Query }>,
+    ) {
+      state.queries = [
+        ...state.queries.splice(0, action.payload.index),
+        action.payload,
+      ];
+    },
     updateStreamingQuery(
       state,
       action: PayloadAction<{ index: number; query: Partial<Query> }>,
     ) {
-      const index = action.payload.index;
-      if (action.payload.query.response) {
+      if (state.status === 'idle') return;
+      const { index, query } = action.payload;
+      if (query.response != undefined) {
         state.queries[index].response =
-          (state.queries[index].response || '') + action.payload.query.response;
+          (state.queries[index].response || '') + query.response;
       } else {
         state.queries[index] = {
           ...state.queries[index],
-          ...action.payload.query,
+          ...query,
         };
       }
     },
@@ -158,30 +199,38 @@ export const conversationSlice = createSlice({
       action: PayloadAction<{ query: Partial<Query> }>,
     ) {
       state.conversationId = action.payload.query.conversationId ?? null;
+      state.status = 'idle';
     },
     updateStreamingSource(
       state,
       action: PayloadAction<{ index: number; query: Partial<Query> }>,
     ) {
-      const index = action.payload.index;
+      const { index, query } = action.payload;
       if (!state.queries[index].sources) {
-        state.queries[index].sources = [action.payload.query.sources![0]];
+        state.queries[index].sources = query?.sources;
       } else {
-        state.queries[index].sources!.push(action.payload.query.sources![0]);
+        state.queries[index].sources!.push(query.sources![0]);
       }
     },
     updateQuery(
       state,
       action: PayloadAction<{ index: number; query: Partial<Query> }>,
     ) {
-      const index = action.payload.index;
+      const { index, query } = action.payload;
       state.queries[index] = {
         ...state.queries[index],
-        ...action.payload.query,
+        ...query,
       };
     },
     setStatus(state, action: PayloadAction<Status>) {
       state.status = action.payload;
+    },
+    raiseError(
+      state,
+      action: PayloadAction<{ index: number; message: string }>,
+    ) {
+      const { index, message } = action.payload;
+      state.queries[index].error = message;
     },
   },
   extraReducers(builder) {
@@ -190,9 +239,13 @@ export const conversationSlice = createSlice({
         state.status = 'loading';
       })
       .addCase(fetchAnswer.rejected, (state, action) => {
+        if (action.meta.aborted) {
+          state.status = 'idle';
+          return state;
+        }
         state.status = 'failed';
         state.queries[state.queries.length - 1].error =
-          'Something went wrong. Please try again later.';
+          'Something went wrong. Please check your internet connection.';
       });
   },
 });
@@ -206,6 +259,7 @@ export const selectStatus = (state: RootState) => state.conversation.status;
 export const {
   addQuery,
   updateQuery,
+  resendQuery,
   updateStreamingQuery,
   updateConversationId,
   updateStreamingSource,

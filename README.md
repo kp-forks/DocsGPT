@@ -7,130 +7,201 @@
 </p>
 
 <p align="left">
-  <strong>DocsGPT</strong> is a cutting-edge open-source solution that streamlines the process of finding information in project documentation. With its integration of the powerful <strong>GPT</strong> models, developers can easily ask questions about a project and receive accurate answers.
+  <strong><a href="https://www.docsgpt.cloud/">DocsGPT</a></strong> is a cutting-edge open-source solution that streamlines the process of finding information in the project documentation. With its integration of the powerful <strong>GPT</strong> models, developers can easily ask questions about a project and receive accurate answers.
   
-Say goodbye to time-consuming manual searches, and let <strong>DocsGPT</strong> help you quickly find the information you need. Try it out and see how it revolutionizes your project documentation experience. Contribute to its development and be a part of the future of AI-powered assistance.
+Say goodbye to time-consuming manual searches, and let <strong><a href="https://www.docsgpt.cloud/">DocsGPT</a></strong> help you quickly find the information you need. Try it out and see how it revolutionizes your project documentation experience. Contribute to its development and be a part of the future of AI-powered assistance.
 </p>
 
 <div align="center">
   
-  <a href="https://discord.gg/n5BX8dh8rU">![example1](https://img.shields.io/github/stars/arc53/docsgpt?style=social)</a>
-  <a href="https://discord.gg/n5BX8dh8rU">![example2](https://img.shields.io/github/forks/arc53/docsgpt?style=social)</a>
-  <a href="https://discord.gg/n5BX8dh8rU">![example3](https://img.shields.io/github/license/arc53/docsgpt)</a>
-  <a href="https://discord.gg/n5BX8dh8rU">![example3](https://img.shields.io/discord/1070046503302877216)</a>
-  
+  <a href="https://github.com/arc53/DocsGPT">![link to main GitHub showing Stars number](https://img.shields.io/github/stars/arc53/docsgpt?style=social)</a>
+  <a href="https://github.com/arc53/DocsGPT">![link to main GitHub showing Forks number](https://img.shields.io/github/forks/arc53/docsgpt?style=social)</a>
+  <a href="https://github.com/arc53/DocsGPT/blob/main/LICENSE">![link to license file](https://img.shields.io/github/license/arc53/docsgpt)</a>
+  <a href="https://discord.gg/n5BX8dh8rU">![link to discord](https://img.shields.io/discord/1070046503302877216)</a>
+  <a href="https://twitter.com/docsgptai">![X (formerly Twitter) URL](https://img.shields.io/twitter/follow/docsgptai)</a>
+
+ 
 </div>
 
-![video-example-of-docs-gpt](https://d3dg1063dc54p9.cloudfront.net/videos/demov3.gif)
+### Production Support / Help for Companies:
+
+We're eager to provide personalized assistance when deploying your DocsGPT to a live environment.
+
+[Book a Meeting :wave:](https://cal.com/arc53/docsgpt-demo-b2b)⁠
+
+[Send Email :email:](mailto:contact@arc53.com?subject=DocsGPT%20support%2Fsolutions)
+
+
+<img src="https://github.com/user-attachments/assets/9a1f21de-7a15-4e42-9424-70d22ba5a913" alt="video-example-of-docs-gpt" width="1000" height="500">
 
 ## Roadmap
 
-You can find our [Roadmap](https://github.com/orgs/arc53/projects/2) here, please don't hesitate contributing or creating issues, it helps us make DocsGPT better!
+You can find our roadmap [here](https://github.com/orgs/arc53/projects/2). Please don't hesitate to contribute or create issues, it helps us improve DocsGPT!
 
-## Our open source models optimised for DocsGPT:
+## Our Open-Source Models Optimized for DocsGPT:
 
-| Name              | Base Model | Requirements (or similar)                        |
-|-------------------|------------|----------------------------------------------------------|
-| [Docsgpt-7b-falcon](https://huggingface.co/Arc53/docsgpt-7b-falcon)  | Falcon-7b  |  1xA10G gpu   |
-| [Docsgpt-14b](https://huggingface.co/Arc53/docsgpt-14b)              | llama-2-14b    | 2xA10 gpu's   |
-| [Docsgpt-40b-falcon](https://huggingface.co/Arc53/docsgpt-40b-falcon)       | falcon-40b     | 8xA10G gpu's  |
+| Name                                                                  | Base Model  | Requirements (or similar) |
+| --------------------------------------------------------------------- | ----------- | ------------------------- |
+| [Docsgpt-7b-mistral](https://huggingface.co/Arc53/docsgpt-7b-mistral)   | Mistral-7b   | 1xA10G gpu                |
+| [Docsgpt-14b](https://huggingface.co/Arc53/docsgpt-14b)               | llama-2-14b | 2xA10 gpu's               |
+| [Docsgpt-40b-falcon](https://huggingface.co/Arc53/docsgpt-40b-falcon) | falcon-40b  | 8xA10G gpu's              |
 
+If you don't have enough resources to run it, you can use bitsnbytes to quantize.
 
-If you don't have enough resources to run it you can use bitsnbytes to quantize
+## End to End AI Framework for Information Retrieval
 
+![Architecture chart](https://github.com/user-attachments/assets/fc6a7841-ddfc-45e6-b5a0-d05fe648cbe2)
 
-## Features
+## Useful Links
 
-![Group 9](https://user-images.githubusercontent.com/17906039/220427472-2644cff4-7666-46a5-819f-fc4a521f63c7.png)
+- :mag: :fire: [Cloud Version](https://app.docsgpt.cloud/)
 
+- :speech_balloon: :tada: [Join our Discord](https://discord.gg/n5BX8dh8rU)
 
-## Useful links
- [Live preview](https://docsgpt.arc53.com/)
- 
- [Join Our Discord](https://discord.gg/n5BX8dh8rU)
- 
- [Guides](https://github.com/arc53/docsgpt/wiki)
+- :books: :sunglasses: [Guides](https://docs.docsgpt.cloud/)
 
- [Interested in contributing?](https://github.com/arc53/DocsGPT/blob/main/CONTRIBUTING.md)
+- :couple: [Interested in contributing?](https://github.com/arc53/DocsGPT/blob/main/CONTRIBUTING.md)
 
- [How to use any other documentation](https://github.com/arc53/docsgpt/wiki/How-to-train-on-other-documentation)
+- :file_folder: :rocket: [How to use any other documentation](https://docs.docsgpt.cloud/Guides/How-to-train-on-other-documentation)
 
- [How to host it locally (so all data will stay on-premises)](https://github.com/arc53/DocsGPT/wiki/How-to-use-different-LLM's#hosting-everything-locally)
+- :house: :closed_lock_with_key: [How to host it locally (so all data will stay on-premises)](https://docs.docsgpt.cloud/Guides/How-to-use-different-LLM)
 
+## Project Structure
 
-## Project structure
-- Application - Flask app (main application)
+- Application - Flask app (main application).
 
-- Extensions - Chrome extension
+- Extensions - Chrome extension.
 
-- Scripts - Script that creates similarity search index and store for other libraries. 
+- Scripts - Script that creates similarity search index for other libraries.
 
-- Frontend - Frontend uses Vite and React
+- Frontend - Frontend uses <a href="https://vitejs.dev/">Vite</a> and <a href="https://react.dev/">React</a>.
 
 ## QuickStart
 
-Note: Make sure you have docker installed
+> [!Note]
+> Make sure you have [Docker](https://docs.docker.com/engine/install/) installed
 
-1. Dowload and open this repository with `git clone https://github.com/arc53/DocsGPT.git`
-2. Create an .env file in your root directory and set the env variable OPENAI_API_KEY with your openai api key and  VITE_API_STREAMING to true or false, depending on if you want streaming answers or not
+On Mac OS or Linux, write:
+
+`./setup.sh`
+
+It will install all the dependencies and allow you to download the local model, use OpenAI or use our LLM API.
+
+Otherwise, refer to this Guide for Windows:
+
+1. Download and open this repository with `git clone https://github.com/arc53/DocsGPT.git`
+2. Create a `.env` file in your root directory and set the env variables and `VITE_API_STREAMING` to true or false, depending on whether you want streaming answers or not.
    It should look like this inside:
-   
+
    ```
-   OPENAI_API_KEY=Yourkey
+   LLM_NAME=[docsgpt or openai or others] 
    VITE_API_STREAMING=true
+   API_KEY=[if LLM_NAME is openai]
    ```
-3. Run `./run-with-docker-compose.sh`
-4. Navigate to http://localhost:5173/
 
-To stop just run Ctrl + C
+   See optional environment variables in the [/.env-template](https://github.com/arc53/DocsGPT/blob/main/.env-template) and [/application/.env_sample](https://github.com/arc53/DocsGPT/blob/main/application/.env_sample) files.
 
-## Development environments
+3. Run [./run-with-docker-compose.sh](https://github.com/arc53/DocsGPT/blob/main/run-with-docker-compose.sh).
+4. Navigate to http://localhost:5173/.
 
-### Spin up mongo and redis
-For development only 2 containers are used from docker-compose.yaml (by deleting all services except for redis and mongo). 
+To stop, just run `Ctrl + C`.
+
+## Development Environments
+
+### Spin up Mongo and Redis
+
+For development, only two containers are used from [docker-compose.yaml](https://github.com/arc53/DocsGPT/blob/main/docker-compose.yaml) (by deleting all services except for Redis and Mongo).
 See file [docker-compose-dev.yaml](./docker-compose-dev.yaml).
 
 Run
+
 ```
 docker compose -f docker-compose-dev.yaml build
 docker compose -f docker-compose-dev.yaml up -d
 ```
 
-### Run the backend
+### Run the Backend
 
-Make sure you have Python 3.10 or 3.11 installed.
+> [!Note]
+> Make sure you have Python 3.12 installed.
 
-1. Export required environment variables
-```commandline
-export CELERY_BROKER_URL=redis://localhost:6379/0   
-export CELERY_RESULT_BACKEND=redis://localhost:6379/1
-export MONGO_URI=mongodb://localhost:27017/docsgpt
-```
-2. Prepare .env file
-Copy `.env_sample` and create `.env` with your OpenAI API token
-3. (optional) Create a python virtual environment
+1. Export required environment variables or prepare a `.env` file in the project folder:
+   - Copy [.env-template](https://github.com/arc53/DocsGPT/blob/main/application/.env-template) and create `.env`.
+
+(check out [`application/core/settings.py`](application/core/settings.py) if you want to see more config options.)
+
+2. (optional) Create a Python virtual environment:
+   You can follow the [Python official documentation](https://docs.python.org/3/tutorial/venv.html) for virtual environments.
+
+a) On Mac OS and Linux
+
 ```commandline
 python -m venv venv
 . venv/bin/activate
 ```
-4. Change to `application/` subdir and install dependencies for the backend
+
+b) On Windows
+
 ```commandline
-cd application/ 
-pip install -r requirements.txt
+python -m venv venv
+ venv/Scripts/activate
 ```
-5. Run the app `python wsgi.py`
-6. Start worker with `celery -A app.celery worker -l INFO`
 
-### Start frontend 
-Make sure you have Node version 16 or higher.
+3. Download embedding model and save it in the `model/` folder:
+You can use the script below, or download it manually from [here](https://d3dg1063dc54p9.cloudfront.net/models/embeddings/mpnet-base-v2.zip), unzip it and save it in the `model/` folder.
 
-1. Navigate to `/frontend` folder
-2. Install dependencies
-`npm install`
-3. Run the app 
-`npm run dev`
+```commandline
+wget https://d3dg1063dc54p9.cloudfront.net/models/embeddings/mpnet-base-v2.zip
+unzip mpnet-base-v2.zip -d model
+rm mpnet-base-v2.zip
+```
 
+4. Install dependencies for the backend:
 
+```commandline
+pip install -r application/requirements.txt
+```
 
-Built with [🦜️🔗 LangChain](https://github.com/hwchase17/langchain)
+5. Run the app using `flask --app application/app.py run --host=0.0.0.0 --port=7091`.
+6. Start worker with `celery -A application.app.celery worker -l INFO`.
 
+### Start Frontend
+
+> [!Note]
+> Make sure you have Node version 16 or higher.
+
+1. Navigate to the [/frontend](https://github.com/arc53/DocsGPT/tree/main/frontend) folder.
+2. Install the required packages `husky` and `vite` (ignore if already installed).
+
+```commandline
+npm install husky -g
+npm install vite -g
+```
+
+3. Install dependencies by running `npm install --include=dev`.
+4. Run the app using `npm run dev`.
+
+## Contributing
+
+Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) file for information about how to get involved. We welcome issues, questions, and pull requests.
+
+## Code Of Conduct
+
+We as members, contributors, and leaders, pledge to make participation in our community a harassment-free experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation. Please refer to the [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) file for more information about contributing.
+
+## Many Thanks To Our Contributors⚡
+
+<a href="https://github.com/arc53/DocsGPT/graphs/contributors" alt="View Contributors">
+  <img src="https://contrib.rocks/image?repo=arc53/DocsGPT" alt="Contributors" />
+</a>
+
+## License
+
+The source code license is [MIT](https://opensource.org/license/mit/), as described in the [LICENSE](LICENSE) file.
+
+<p>This project is supported by:</p>
+<p>
+  <a href="https://www.digitalocean.com/?utm_medium=opensource&utm_source=DocsGPT">
+    <img src="https://opensource.nyc3.cdn.digitaloceanspaces.com/attribution/assets/SVG/DO_Logo_horizontal_blue.svg" width="201px">
+  </a>
+</p>
