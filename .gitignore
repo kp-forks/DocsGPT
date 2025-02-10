@@ -5,7 +5,7 @@ __pycache__/
 
 # C extensions
 *.so
-
+*.next
 # Distribution / packaging
 .Python
 build/
@@ -75,6 +75,7 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+**/*.ipynb
 
 # IPython
 profile_default/
@@ -170,3 +171,6 @@ application/vectors/
 **/yarn.lock
 
 node_modules/
+.vscode/settings.json
+/models/
+model/

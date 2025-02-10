@@ -1,116 +1,154 @@
 import { useEffect, useRef, useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import Arrow1 from './assets/arrow.svg';
-import Arrow2 from './assets/dropdown-arrow.svg';
-import Exit from './assets/exit.svg';
-import Message from './assets/message.svg';
-import Hamburger from './assets/hamburger.svg';
-import Key from './assets/key.svg';
-import Info from './assets/info.svg';
-import Link from './assets/link.svg';
-import UploadIcon from './assets/upload.svg';
-import { ActiveState } from './models/misc';
-import APIKeyModal from './preferences/APIKeyModal';
-import SelectDocsModal from './preferences/SelectDocsModal';
+import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  selectApiKeyStatus,
-  selectSelectedDocs,
-  selectSelectedDocsStatus,
-  selectSourceDocs,
-  setSelectedDocs,
-  selectConversations,
-  setConversations,
-  selectConversationId,
-} from './preferences/preferenceSlice';
+import { NavLink, useNavigate } from 'react-router-dom';
+import conversationService from './api/services/conversationService';
+import userService from './api/services/userService';
+import Add from './assets/add.svg';
+import openNewChat from './assets/openNewChat.svg';
+import Hamburger from './assets/hamburger.svg';
+import DocsGPT3 from './assets/cute_docsgpt3.svg';
+import Discord from './assets/discord.svg';
+import Expand from './assets/expand.svg';
+import Github from './assets/github.svg';
+import SettingGear from './assets/settingGear.svg';
+import Twitter from './assets/TwitterX.svg';
+import UploadIcon from './assets/upload.svg';
+import SourceDropdown from './components/SourceDropdown';
 import {
   setConversation,
   updateConversationId,
+  handleAbort,
 } from './conversation/conversationSlice';
-import { useOutsideAlerter } from './hooks';
+import ConversationTile from './conversation/ConversationTile';
+import { useDarkTheme, useMediaQuery } from './hooks';
+import useDefaultDocument from './hooks/useDefaultDocument';
+import DeleteConvModal from './modals/DeleteConvModal';
+import { ActiveState, Doc } from './models/misc';
+import { getConversations, getDocs } from './preferences/preferenceApi';
+import {
+  selectApiKeyStatus,
+  selectConversationId,
+  selectConversations,
+  selectModalStateDeleteConv,
+  selectSelectedDocs,
+  selectSourceDocs,
+  selectPaginatedDocuments,
+  setConversations,
+  setModalStateDeleteConv,
+  setSelectedDocs,
+  setSourceDocs,
+  setPaginatedDocuments,
+} from './preferences/preferenceSlice';
+import Spinner from './assets/spinner.svg';
+import SpinnerDark from './assets/spinner-dark.svg';
+import { selectQueries } from './conversation/conversationSlice';
 import Upload from './upload/Upload';
-import { Doc, getConversations } from './preferences/preferenceApi';
+import Help from './components/Help';
 
-export default function Navigation({
-  navState,
-  setNavState,
-}: {
-  navState: ActiveState;
-  setNavState: React.Dispatch<React.SetStateAction<ActiveState>>;
-}) {
+interface NavigationProps {
+  navOpen: boolean;
+  setNavOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}
+
+export default function Navigation({ navOpen, setNavOpen }: NavigationProps) {
   const dispatch = useDispatch();
+  const queries = useSelector(selectQueries);
   const docs = useSelector(selectSourceDocs);
   const selectedDocs = useSelector(selectSelectedDocs);
   const conversations = useSelector(selectConversations);
+  const modalStateDeleteConv = useSelector(selectModalStateDeleteConv);
   const conversationId = useSelector(selectConversationId);
+  const paginatedDocuments = useSelector(selectPaginatedDocuments);
+  const [isDeletingConversation, setIsDeletingConversation] = useState(false);
 
+  const { isMobile } = useMediaQuery();
+  const [isDarkTheme] = useDarkTheme();
   const [isDocsListOpen, setIsDocsListOpen] = useState(false);
-
+  const { t } = useTranslation();
   const isApiKeySet = useSelector(selectApiKeyStatus);
-  const [apiKeyModalState, setApiKeyModalState] =
-    useState<ActiveState>('INACTIVE');
-
-  const isSelectedDocsSet = useSelector(selectSelectedDocsStatus);
-  const [selectedDocsModalState, setSelectedDocsModalState] =
-    useState<ActiveState>(isSelectedDocsSet ? 'INACTIVE' : 'ACTIVE');
 
   const [uploadModalState, setUploadModalState] =
     useState<ActiveState>('INACTIVE');
 
   const navRef = useRef(null);
-  const apiHost = import.meta.env.VITE_API_HOST || 'https://docsapi.arc53.com';
+
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (!conversations) {
-      getConversations()
-        .then((fetchedConversations) => {
-          dispatch(setConversations(fetchedConversations));
-        })
-        .catch((error) => {
-          console.error('Failed to fetch conversations: ', error);
-        });
+    if (!conversations?.data) {
+      fetchConversations();
     }
-  }, [conversations, dispatch]);
+    if (queries.length === 0) {
+      resetConversation();
+    }
+  }, [conversations?.data, dispatch]);
 
-  const handleDeleteConversation = (id: string) => {
-    fetch(`${apiHost}/api/delete_conversation?id=${id}`, {
-      method: 'POST',
-    })
+  async function fetchConversations() {
+    dispatch(setConversations({ ...conversations, loading: true }));
+    return await getConversations()
+      .then((fetchedConversations) => {
+        dispatch(setConversations(fetchedConversations));
+      })
+      .catch((error) => {
+        console.error('Failed to fetch conversations: ', error);
+        dispatch(setConversations({ data: null, loading: false }));
+      });
+  }
+
+  const handleDeleteAllConversations = () => {
+    setIsDeletingConversation(true);
+    conversationService
+      .deleteAll()
       .then(() => {
-        // remove the image element from the DOM
-        const imageElement = document.querySelector(
-          `#img-${id}`,
-        ) as HTMLElement;
-        const parentElement = imageElement.parentNode as HTMLElement;
-        parentElement.parentNode?.removeChild(parentElement);
+        fetchConversations();
       })
       .catch((error) => console.error(error));
   };
 
-  const handleDeleteClick = (index: number, doc: Doc) => {
-    const docPath = 'indexes/' + 'local' + '/' + doc.name;
-
-    fetch(`${apiHost}/api/delete_old?path=${docPath}`, {
-      method: 'GET',
-    })
+  const handleDeleteConversation = (id: string) => {
+    setIsDeletingConversation(true);
+    conversationService
+      .delete(id, {})
       .then(() => {
-        // remove the image element from the DOM
-        const imageElement = document.querySelector(
-          `#img-${index}`,
-        ) as HTMLElement;
-        const parentElement = imageElement.parentNode as HTMLElement;
-        parentElement.parentNode?.removeChild(parentElement);
+        fetchConversations();
+        resetConversation();
+      })
+      .catch((error) => console.error(error));
+  };
+
+  const handleDeleteClick = (doc: Doc) => {
+    userService
+      .deletePath(doc.id ?? '')
+      .then(() => {
+        return getDocs();
+      })
+      .then((updatedDocs) => {
+        dispatch(setSourceDocs(updatedDocs));
+        const updatedPaginatedDocs = paginatedDocuments?.filter(
+          (document) => document.id !== doc.id,
+        );
+        dispatch(
+          setPaginatedDocuments(updatedPaginatedDocs || paginatedDocuments),
+        );
+        dispatch(
+          setSelectedDocs(
+            Array.isArray(updatedDocs) &&
+              updatedDocs?.find(
+                (doc: Doc) => doc.name.toLowerCase() === 'default',
+              ),
+          ),
+        );
       })
       .catch((error) => console.error(error));
   };
 
   const handleConversationClick = (index: string) => {
-    // fetch the conversation from the server and setConversation in the store
-    fetch(`${apiHost}/api/get_single_conversation?id=${index}`, {
-      method: 'GET',
-    })
+    conversationService
+      .getConversation(index)
       .then((response) => response.json())
       .then((data) => {
+        navigate('/');
         dispatch(setConversation(data));
         dispatch(
           updateConversationId({
@@ -119,247 +157,319 @@ export default function Navigation({
         );
       });
   };
-  useOutsideAlerter(
-    navRef,
-    () => {
-      if (
-        window.matchMedia('(max-width: 768px)').matches &&
-        navState === 'ACTIVE' &&
-        apiKeyModalState === 'INACTIVE'
-      ) {
-        setNavState('INACTIVE');
-        setIsDocsListOpen(false);
-      }
-    },
-    [navState, isDocsListOpen, apiKeyModalState],
-  );
+
+  const resetConversation = () => {
+    handleAbort();
+    dispatch(setConversation([]));
+    dispatch(
+      updateConversationId({
+        query: { conversationId: null },
+      }),
+    );
+  };
+  const newChat = () => {
+    if (queries && queries?.length > 0) {
+      resetConversation();
+    }
+  };
+  async function updateConversationName(updatedConversation: {
+    name: string;
+    id: string;
+  }) {
+    await conversationService
+      .update(updatedConversation)
+      .then((response) => response.json())
+      .then((data) => {
+        if (data) {
+          navigate('/');
+          fetchConversations();
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+      });
+  }
 
   /*
     Needed to fix bug where if mobile nav was closed and then window was resized to desktop, nav would still be closed but the button to open would be gone, as per #1 on issue #146
   */
+
   useEffect(() => {
-    window.addEventListener('resize', () => {
-      if (window.matchMedia('(min-width: 768px)').matches) {
-        setNavState('ACTIVE');
-      } else {
-        setNavState('INACTIVE');
-      }
-    });
-  }, []);
+    setNavOpen(!isMobile);
+  }, [isMobile]);
+  useDefaultDocument();
 
   return (
     <>
+      {!navOpen && (
+        <div className="duration-25 absolute  top-3 left-3 z-20 hidden transition-all md:block">
+          <div className="flex gap-3 items-center">
+            <button
+              onClick={() => {
+                setNavOpen(!navOpen);
+              }}
+            >
+              <img
+                src={Expand}
+                alt="Toggle navigation menu"
+                className={`${
+                  !navOpen ? 'rotate-180' : 'rotate-0'
+                } m-auto transition-all duration-200`}
+              />
+            </button>
+            {queries?.length > 0 && (
+              <button
+                onClick={() => {
+                  newChat();
+                }}
+              >
+                <img
+                  src={openNewChat}
+                  alt="Start new chat"
+                  className="cursor-pointer"
+                />
+              </button>
+            )}
+            <div className="text-[#949494] font-medium text-[20px]">
+              DocsGPT
+            </div>
+          </div>
+        </div>
+      )}
       <div
         ref={navRef}
         className={`${
-          navState === 'INACTIVE' && '-ml-96 md:-ml-[14rem]'
-        } duration-20 fixed z-20 flex h-full w-72 flex-col border-r-2 bg-gray-50 transition-all`}
+          !navOpen && '-ml-96 md:-ml-[18rem]'
+        } duration-20 fixed top-0 z-20 flex h-full w-72 flex-col border-r-[1px] border-b-0 bg-white transition-all dark:border-r-purple-taupe dark:bg-chinese-black dark:text-white`}
       >
-        <div className={'visible h-16 w-full border-b-2 md:hidden'}>
+        <div
+          className={'visible mt-2 flex h-[6vh] w-full justify-between md:h-12'}
+        >
+          <div
+            className="my-auto mx-4 flex cursor-pointer gap-1.5"
+            onClick={() => {
+              if (isMobile) {
+                setNavOpen(!navOpen);
+              }
+            }}
+          >
+            <a href="/" className="flex gap-1.5">
+              <img className="mb-2 h-10" src={DocsGPT3} alt="DocsGPT Logo" />
+              <p className="my-auto text-2xl font-semibold">DocsGPT</p>
+            </a>
+          </div>
           <button
-            className="float-right mr-5 mt-5 h-5 w-5"
-            onClick={() =>
-              setNavState(navState === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')
-            }
+            className="float-right mr-5"
+            onClick={() => {
+              setNavOpen(!navOpen);
+            }}
           >
             <img
-              src={Arrow1}
-              alt="menu toggle"
+              src={Expand}
+              alt="Toggle navigation menu"
               className={`${
-                navState === 'INACTIVE' ? 'rotate-180' : 'rotate-0'
-              } m-auto w-3 transition-all duration-200`}
+                !navOpen ? 'rotate-180' : 'rotate-0'
+              } m-auto transition-all duration-200`}
             />
           </button>
         </div>
         <NavLink
           to={'/'}
           onClick={() => {
-            dispatch(setConversation([]));
-            dispatch(updateConversationId({ query: { conversationId: null } }));
+            if (isMobile) {
+              setNavOpen(!navOpen);
+            }
+            resetConversation();
           }}
           className={({ isActive }) =>
             `${
-              isActive && conversationId === null ? 'bg-gray-3000' : ''
-            } my-auto mx-4 mt-4 flex h-12 cursor-pointer gap-4 rounded-md hover:bg-gray-100`
+              isActive ? 'bg-gray-3000 dark:bg-transparent' : ''
+            } group sticky mx-4 mt-4 flex cursor-pointer gap-2.5 rounded-3xl border border-silver p-3 hover:border-rainy-gray hover:bg-gray-3000 dark:border-purple-taupe dark:text-white dark:hover:bg-transparent`
           }
         >
-          <img src={Message} className="ml-2 w-5"></img>
-          <p className="my-auto text-eerie-black">New Chat</p>
+          <img
+            src={Add}
+            alt="Create new chat"
+            className="opacity-80 group-hover:opacity-100"
+          />
+          <p className=" text-sm text-dove-gray group-hover:text-neutral-600 dark:text-chinese-silver dark:group-hover:text-bright-gray">
+            {t('newChat')}
+          </p>
         </NavLink>
-        <div className="conversations-container max-h-[25rem] overflow-y-auto">
-          {conversations
-            ? conversations.map((conversation) => {
-                return (
-                  <div
-                    key={conversation.id}
-                    onClick={() => {
-                      handleConversationClick(conversation.id);
-                    }}
-                    className={`my-auto mx-4 mt-4 flex h-12 cursor-pointer items-center justify-between gap-4 rounded-md hover:bg-gray-100 ${
-                      conversationId === conversation.id ? 'bg-gray-100' : ''
-                    }`}
-                  >
-                    <div className="flex gap-4">
-                      <img src={Message} className="ml-2 w-5"></img>
-                      <p className="my-auto text-eerie-black">
-                        {conversation.name}
-                      </p>
-                    </div>
-
-                    {conversationId === conversation.id ? (
-                      <img
-                        src={Exit}
-                        alt="Exit"
-                        className="mr-4 h-3 w-3 cursor-pointer hover:opacity-50"
-                        id={`img-${conversation.id}`}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleDeleteConversation(conversation.id);
-                        }}
-                      />
-                    ) : null}
-                  </div>
-                );
-              })
-            : null}
-        </div>
-
-        <div className="flex-grow border-b-2 border-gray-100"></div>
-        <div className="flex flex-col-reverse border-b-2">
-          <div className="relative my-4 flex gap-2 px-2">
-            <div
-              className="flex h-12 w-full cursor-pointer justify-between rounded-md border-2 bg-white"
-              onClick={() => setIsDocsListOpen(!isDocsListOpen)}
-            >
-              {selectedDocs && (
-                <p className="my-3 mx-4">
-                  {selectedDocs.name} {selectedDocs.version}
-                </p>
-              )}
+        <div
+          id="conversationsMainDiv"
+          className="mb-auto h-[78vh] overflow-y-auto overflow-x-hidden dark:text-white"
+        >
+          {conversations?.loading && !isDeletingConversation && (
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
               <img
-                src={Arrow2}
-                alt="arrow"
-                className={`${
-                  isDocsListOpen ? 'rotate-0' : 'rotate-180'
-                } mr-3 w-3 transition-all`}
+                src={isDarkTheme ? SpinnerDark : Spinner}
+                className="animate-spin cursor-pointer bg-transparent"
+                alt="Loading conversations"
               />
             </div>
-            <img
-              className="mt-2 h-9 w-9 hover:cursor-pointer"
-              src={UploadIcon}
-              onClick={() => setUploadModalState('ACTIVE')}
-            ></img>
-            {isDocsListOpen && (
-              <div className="absolute top-12 left-0 right-6 ml-2 mr-4 max-h-52 overflow-y-scroll bg-white shadow-lg">
-                {docs ? (
-                  docs.map((doc, index) => {
-                    if (doc.model === 'openai_text-embedding-ada-002') {
-                      return (
-                        <div
-                          key={index}
-                          onClick={() => {
-                            dispatch(setSelectedDocs(doc));
-                            setIsDocsListOpen(false);
-                          }}
-                          className="flex h-10 w-full cursor-pointer items-center justify-between border-x-2 border-b-2 hover:bg-gray-100"
-                        >
-                          <p className="ml-5 flex-1 overflow-hidden overflow-ellipsis whitespace-nowrap py-3">
-                            {doc.name} {doc.version}
-                          </p>
-                          {doc.location === 'local' ? (
-                            <img
-                              src={Exit}
-                              alt="Exit"
-                              className="mr-4 h-3 w-3 cursor-pointer hover:opacity-50"
-                              id={`img-${index}`}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                handleDeleteClick(index, doc);
-                              }}
-                            />
-                          ) : null}
-                        </div>
-                      );
-                    }
-                  })
-                ) : (
-                  <div className="h-10 w-full cursor-pointer border-x-2 border-b-2 hover:bg-gray-100">
-                    <p className="ml-5 py-3">No default documentation.</p>
-                  </div>
-                )}
+          )}
+          {conversations?.data && conversations.data.length > 0 ? (
+            <div>
+              <div className=" my-auto mx-4 mt-2 flex h-6 items-center justify-between gap-4 rounded-3xl">
+                <p className="mt-1 ml-4 text-sm font-semibold">{t('chats')}</p>
               </div>
-            )}
-          </div>
-          <p className="ml-6 mt-3 font-bold text-jet">Source Docs</p>
+              <div className="conversations-container">
+                {conversations.data?.map((conversation) => (
+                  <ConversationTile
+                    key={conversation.id}
+                    conversation={conversation}
+                    selectConversation={(id) => handleConversationClick(id)}
+                    onCoversationClick={() => {
+                      if (isMobile) {
+                        setNavOpen(false);
+                      }
+                    }}
+                    onDeleteConversation={(id) => handleDeleteConversation(id)}
+                    onSave={(conversation) =>
+                      updateConversationName(conversation)
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <></>
+          )}
         </div>
-        <div className="flex flex-col gap-2 border-b-2 py-2">
-          <div
-            className="my-auto mx-4 flex h-12 cursor-pointer gap-4 rounded-md hover:bg-gray-100"
-            onClick={() => {
-              setApiKeyModalState('ACTIVE');
-            }}
-          >
-            <img src={Key} alt="key" className="ml-2 w-6" />
-            <p className="my-auto text-eerie-black">Reset Key</p>
+        <div className="flex h-auto flex-col justify-end text-eerie-black dark:text-white">
+          <div className="flex flex-col-reverse border-b-[1px] dark:border-b-purple-taupe">
+            <div className="relative my-4 mx-4 flex gap-2">
+              <SourceDropdown
+                options={docs}
+                selectedDocs={selectedDocs}
+                setSelectedDocs={setSelectedDocs}
+                isDocsListOpen={isDocsListOpen}
+                setIsDocsListOpen={setIsDocsListOpen}
+                handleDeleteClick={handleDeleteClick}
+                handlePostDocumentSelect={(option?: string) => {
+                  if (isMobile) {
+                    setNavOpen(!navOpen);
+                  }
+                }}
+              />
+              <img
+                className="mt-2 h-9 w-9 hover:cursor-pointer"
+                src={UploadIcon}
+                alt="Upload document"
+                onClick={() => {
+                  setUploadModalState('ACTIVE');
+                  if (isMobile) {
+                    setNavOpen(!navOpen);
+                  }
+                }}
+              ></img>
+            </div>
+            <p className="ml-5 mt-3 text-sm font-semibold">{t('sourceDocs')}</p>
           </div>
-        </div>
+          <div className="flex flex-col gap-2 border-b-[1px] py-2 dark:border-b-purple-taupe">
+            <NavLink
+              onClick={() => {
+                if (isMobile) {
+                  setNavOpen(!navOpen);
+                }
+                resetConversation();
+              }}
+              to="/settings"
+              className={({ isActive }) =>
+                `my-auto mx-4 flex h-9 cursor-pointer gap-4 rounded-3xl hover:bg-gray-100 dark:hover:bg-[#28292E] ${
+                  isActive ? 'bg-gray-3000 dark:bg-transparent' : ''
+                }`
+              }
+            >
+              <img
+                src={SettingGear}
+                alt="Settings"
+                className="ml-2 w-5 filter dark:invert"
+              />
+              <p className="my-auto text-sm text-eerie-black  dark:text-white">
+                {t('settings.label')}
+              </p>
+            </NavLink>
+          </div>
+          <div className="flex flex-col justify-end text-eerie-black dark:text-white">
+            <div className="flex justify-between items-center py-1">
+              <Help />
 
-        <div className="flex flex-col gap-2 border-b-2 py-2">
-          <NavLink
-            to="/about"
-            className={({ isActive }) =>
-              `my-auto mx-4 flex h-12 cursor-pointer gap-4 rounded-md hover:bg-gray-100 ${
-                isActive ? 'bg-gray-3000' : ''
-              }`
-            }
-          >
-            <img src={Info} alt="info" className="ml-2 w-5" />
-            <p className="my-auto text-eerie-black">About</p>
-          </NavLink>
-
-          <a
-            href="https://discord.gg/WHJdfbQDR4"
-            target="_blank"
-            rel="noreferrer"
-            className="my-auto mx-4 flex h-12 cursor-pointer gap-4 rounded-md hover:bg-gray-100"
-          >
-            <img src={Link} alt="link" className="ml-2 w-5" />
-            <p className="my-auto text-eerie-black">Discord</p>
-          </a>
-
-          <a
-            href="https://github.com/arc53/DocsGPT"
-            target="_blank"
-            rel="noreferrer"
-            className="my-auto mx-4 flex h-12 cursor-pointer gap-4 rounded-md hover:bg-gray-100"
-          >
-            <img src={Link} alt="link" className="ml-2 w-5" />
-            <p className="my-auto text-eerie-black">Github</p>
-          </a>
+              <div className="flex items-center gap-1 pr-4">
+                <NavLink
+                  target="_blank"
+                  to={'https://discord.gg/WHJdfbQDR4'}
+                  className={
+                    'rounded-full hover:bg-gray-100 dark:hover:bg-[#28292E]'
+                  }
+                >
+                  <img
+                    src={Discord}
+                    alt="Join Discord community"
+                    className="m-2 w-6 self-center filter dark:invert"
+                  />
+                </NavLink>
+                <NavLink
+                  target="_blank"
+                  to={'https://twitter.com/docsgptai'}
+                  className={
+                    'rounded-full hover:bg-gray-100 dark:hover:bg-[#28292E]'
+                  }
+                >
+                  <img
+                    src={Twitter}
+                    alt="Follow us on Twitter"
+                    className="m-2 w-5 self-center filter dark:invert"
+                  />
+                </NavLink>
+                <NavLink
+                  target="_blank"
+                  to={'https://github.com/arc53/docsgpt'}
+                  className={
+                    'rounded-full hover:bg-gray-100 dark:hover:bg-[#28292E]'
+                  }
+                >
+                  <img
+                    src={Github}
+                    alt="View on GitHub"
+                    className="m-2 w-6 self-center filter dark:invert"
+                  />
+                </NavLink>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      <div className="fixed h-16 w-full border-b-2 bg-gray-50 md:hidden">
-        <button
-          className="mt-5 ml-6 h-6 w-6 md:hidden"
-          onClick={() => setNavState('ACTIVE')}
-        >
-          <img src={Hamburger} alt="menu toggle" className="w-7" />
-        </button>
+      <div className="sticky z-10 h-16 w-full border-b-2 bg-gray-50 dark:border-b-purple-taupe dark:bg-chinese-black md:hidden">
+        <div className="flex gap-6 items-center h-full ml-6 ">
+          <button
+            className=" h-6 w-6 md:hidden"
+            onClick={() => setNavOpen(true)}
+          >
+            <img
+              src={Hamburger}
+              alt="Toggle mobile menu"
+              className="w-7 filter dark:invert"
+            />
+          </button>
+          <div className="text-[#949494] font-medium text-[20px]">DocsGPT</div>
+        </div>
       </div>
-      <SelectDocsModal
-        modalState={selectedDocsModalState}
-        setModalState={setSelectedDocsModalState}
-        isCancellable={isSelectedDocsSet}
+      <DeleteConvModal
+        modalState={modalStateDeleteConv}
+        setModalState={setModalStateDeleteConv}
+        handleDeleteAllConv={handleDeleteAllConversations}
       />
-      <APIKeyModal
-        modalState={apiKeyModalState}
-        setModalState={setApiKeyModalState}
-        isCancellable={isApiKeySet}
-      />
-      <Upload
-        modalState={uploadModalState}
-        setModalState={setUploadModalState}
-      ></Upload>
+      {uploadModalState === 'ACTIVE' && (
+        <Upload
+          receivedFile={[]}
+          setModalState={setUploadModalState}
+          isOnboarding={false}
+          renderTab={null}
+          close={() => setUploadModalState('INACTIVE')}
+        ></Upload>
+      )}
     </>
   );
 }

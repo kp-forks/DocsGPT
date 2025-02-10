@@ -10,18 +10,27 @@ from application.parser.file.epub_parser import EpubParser
 from application.parser.file.html_parser import HTMLParser
 from application.parser.file.markdown_parser import MarkdownParser
 from application.parser.file.rst_parser import RstParser
-from application.parser.file.tabular_parser import PandasCSVParser
+from application.parser.file.tabular_parser import PandasCSVParser,ExcelParser
+from application.parser.file.json_parser import JSONParser
+from application.parser.file.pptx_parser import PPTXParser
+from application.parser.file.image_parser import ImageParser
 from application.parser.schema.base import Document
 
 DEFAULT_FILE_EXTRACTOR: Dict[str, BaseParser] = {
     ".pdf": PDFParser(),
     ".docx": DocxParser(),
     ".csv": PandasCSVParser(),
+    ".xlsx":ExcelParser(),
     ".epub": EpubParser(),
     ".md": MarkdownParser(),
     ".rst": RstParser(),
     ".html": HTMLParser(),
     ".mdx": MarkdownParser(),
+    ".json":JSONParser(),
+    ".pptx":PPTXParser(),
+    ".png": ImageParser(),
+    ".jpg": ImageParser(),
+    ".jpeg": ImageParser(),
 }
 
 
@@ -62,7 +71,6 @@ class SimpleDirectoryReader(BaseReader):
             file_extractor: Optional[Dict[str, BaseParser]] = None,
             num_files_limit: Optional[int] = None,
             file_metadata: Optional[Callable[[str], Dict]] = None,
-            chunk_size_max: int = 2048,
     ) -> None:
         """Initialize with parameters."""
         super().__init__()
@@ -148,12 +156,24 @@ class SimpleDirectoryReader(BaseReader):
                 # do standard read
                 with open(input_file, "r", errors=self.errors) as f:
                     data = f.read()
-            if isinstance(data, List):
-                data_list.extend(data)
-            else:
-                data_list.append(str(data))
+            # Prepare metadata for this file
             if self.file_metadata is not None:
-                metadata_list.append(self.file_metadata(str(input_file)))
+                file_metadata = self.file_metadata(str(input_file))
+            else:
+                # Provide a default empty metadata
+                file_metadata = {'title': '', 'store': ''}
+                # TODO: Find a case with no metadata and check if breaks anything 
+
+            if isinstance(data, List):
+                # Extend data_list with each item in the data list
+                data_list.extend([str(d) for d in data])
+                # For each item in the data list, add the file's metadata to metadata_list
+                metadata_list.extend([file_metadata for _ in data])
+            else:
+                # Add the single piece of data to data_list
+                data_list.append(str(data))
+                # Add the file's metadata to metadata_list
+                metadata_list.append(file_metadata)
 
         if concatenate:
             return [Document("\n".join(data_list))]

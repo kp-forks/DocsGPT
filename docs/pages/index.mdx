@@ -1,0 +1,45 @@
+---
+title: 'Home'
+---
+import { Cards, Card } from 'nextra/components'
+import Image from 'next/image'
+import deployingGuides from './Deploying/_meta.json';
+import developingGuides from './API/_meta.json';
+import extensionGuides from './Extensions/_meta.json';
+import mainGuides from './Guides/_meta.json';
+
+
+
+
+
+export const allGuides = {
+  ...deployingGuides,
+  ...developingGuides,
+  ...extensionGuides,
+  ...mainGuides,
+};
+
+###  **DocsGPT 🦖**
+
+DocsGPT 🦖 is an innovative open-source tool designed to simplify the retrieval of information from project documentation using advanced GPT models 🤖. Eliminate lengthy manual searches 🔍 and enhance your documentation experience with DocsGPT, and consider contributing to its AI-powered future 🚀.
+
+
+
+<video controls width={1920} height={1080} muted autoPlay loop playsInline>
+  <source src="https://d3dg1063dc54p9.cloudfront.net/videos/demov4.mp4" type="video/mp4" />
+  Your browser does not support the video tag.
+</video>
+
+
+Try it yourself: [https://www.docsgpt.cloud/](https://www.docsgpt.cloud/)
+
+<Cards
+      num={3}
+      children={Object.keys(allGuides).map((key, i) => (
+        <Card
+          key={i}
+          title={allGuides[key].title}
+          href={allGuides[key].href}
+        />
+      ))}
+    />

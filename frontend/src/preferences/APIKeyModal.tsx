@@ -2,8 +2,9 @@ import { useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { ActiveState } from '../models/misc';
 import { selectApiKey, setApiKey } from './preferenceSlice';
-import { useOutsideAlerter } from './../hooks';
-import Modal from '../Modal';
+import { useMediaQuery, useOutsideAlerter } from './../hooks';
+import Modal from '../modals';
+import Input from '../components/Input';
 
 export default function APIKeyModal({
   modalState,
@@ -19,19 +20,13 @@ export default function APIKeyModal({
   const [key, setKey] = useState(apiKey);
   const [isError, setIsError] = useState(false);
   const modalRef = useRef(null);
+  const { isMobile } = useMediaQuery();
 
-  useOutsideAlerter(
-    modalRef,
-    () => {
-      if (
-        window.matchMedia('(max-width: 768px)').matches &&
-        modalState === 'ACTIVE'
-      ) {
-        setModalState('INACTIVE');
-      }
-    },
-    [modalState],
-  );
+  useOutsideAlerter(modalRef, () => {
+    if (isMobile && modalState === 'ACTIVE') {
+      setModalState('INACTIVE');
+    }
+  }, [modalState]);
 
   function handleSubmit() {
     if (key.length <= 1) {
@@ -60,7 +55,7 @@ export default function APIKeyModal({
         return (
           <article
             ref={modalRef}
-            className="mx-auto mt-24 flex w-[90vw] max-w-lg  flex-col gap-4 rounded-lg bg-white p-6 shadow-lg"
+            className="mx-auto mt-24 flex w-[90vw] max-w-lg  flex-col gap-4 rounded-t-lg bg-white p-6 shadow-lg"
           >
             <p className="text-xl text-jet">OpenAI API Key</p>
             <p className="text-md leading-6 text-gray-500">
@@ -68,14 +63,15 @@ export default function APIKeyModal({
               key for llm. Currently, we support only OpenAI but soon many more.
               You can find it here.
             </p>
-            <input
+            <Input
               type="text"
-              className="h-10 w-full border-b-2 border-jet focus:outline-none"
+              colorVariant="jet"
+              className="h-10 border-b-2 focus:outline-none"
               value={key}
               maxLength={100}
               placeholder="API Key"
               onChange={(e) => setKey(e.target.value)}
-            />
+            ></Input>
           </article>
         );
       }}

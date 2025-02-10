@@ -1,6 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
+  darkMode: 'class',
   theme: {
     extend: {
       spacing: {
@@ -11,7 +12,7 @@ module.exports = {
         'eerie-black': '#212121',
         'black-1000': '#343541',
         jet: '#343541',
-        'gray-alpha': 'rgba(0,0,0, .1)',
+        'gray-alpha': 'rgba(0,0,0, .64)',
         'gray-1000': '#F6F6F6',
         'gray-2000': 'rgba(0, 0, 0, 0.5)',
         'gray-3000': 'rgba(243, 243, 243, 1)',
@@ -24,8 +25,30 @@ module.exports = {
         'blue-1000': '#7D54D1',
         'blue-2000': '#002B49',
         'blue-3000': '#4B02E2',
+        'purple-30': '#7D54D1',
+        'purple-3000': 'rgb(230,222,247)',
         'blue-4000': 'rgba(0, 125, 255, 0.36)',
         'blue-5000': 'rgba(0, 125, 255)',
+        'green-2000': '#0FFF50',
+        'light-gray': '#edeef0',
+        'white-3000': '#ffffff',
+        'just-black':"#00000",
+        'purple-taupe':'#464152',
+        'dove-gray': '#6c6c6c',
+        'silver': '#c4c4c4',
+        'rainy-gray': '#a4a4a4',
+        'raisin-black':'#222327',
+        'chinese-black':'#161616',
+        'chinese-silver':'#CDCDCD',
+        'dark-charcoal':'#2F3036',
+        'bright-gray':'#ECECF1',
+        'outer-space':'#444654',
+        'gun-metal':'#2E303E',
+        'sonic-silver':'#747474',
+        'soap':'#D8CCF1',
+        'independence':'#54546D',
+        'philippine-yellow':'#FFC700',
+        'bright-gray':'#EBEBEB'
       },
     },
   },

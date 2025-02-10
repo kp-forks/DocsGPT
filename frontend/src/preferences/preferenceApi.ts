@@ -1,27 +1,14 @@
-// not all properties in Doc are going to be present. Make some optional
-export type Doc = {
-  location: string;
-  name: string;
-  language: string;
-  version: string;
-  description: string;
-  fullName: string;
-  dat: string;
-  docLink: string;
-  model: string;
-};
+import conversationService from '../api/services/conversationService';
+import userService from '../api/services/userService';
+import { Doc, GetDocsResponse } from '../models/misc';
 
 //Fetches all JSON objects from the source. We only use the objects with the "model" property in SelectDocsModal.tsx. Hopefully can clean up the source file later.
 export async function getDocs(): Promise<Doc[] | null> {
   try {
-    const apiHost =
-      import.meta.env.VITE_API_HOST || 'https://docsapi.arc53.com';
-
-    const response = await fetch(apiHost + '/api/combine');
+    const response = await userService.getDocs();
     const data = await response.json();
 
     const docs: Doc[] = [];
-
     data.forEach((doc: object) => {
       docs.push(doc as Doc);
     });
@@ -33,14 +20,40 @@ export async function getDocs(): Promise<Doc[] | null> {
   }
 }
 
-export async function getConversations(): Promise<
-  { name: string; id: string }[] | null
-> {
+export async function getDocsWithPagination(
+  sort = 'date',
+  order = 'desc',
+  pageNumber = 1,
+  rowsPerPage = 10,
+  searchTerm = '',
+): Promise<GetDocsResponse | null> {
   try {
-    const apiHost =
-      import.meta.env.VITE_API_HOST || 'https://docsapi.arc53.com';
+    const query = `sort=${sort}&order=${order}&page=${pageNumber}&rows=${rowsPerPage}&search=${searchTerm}`;
+    const response = await userService.getDocsWithPagination(query);
+    const data = await response.json();
+    const docs: Doc[] = [];
+    Array.isArray(data.paginated) &&
+      data.paginated.forEach((doc: Doc) => {
+        docs.push(doc as Doc);
+      });
+    return {
+      docs: docs,
+      totalDocuments: data.total,
+      totalPages: data.totalPages,
+      nextCursor: data.nextCursor,
+    };
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+}
 
-    const response = await fetch(apiHost + '/api/get_conversations');
+export async function getConversations(): Promise<{
+  data: { name: string; id: string }[] | null;
+  loading: boolean;
+}> {
+  try {
+    const response = await conversationService.getConversations();
     const data = await response.json();
 
     const conversations: { name: string; id: string }[] = [];
@@ -49,10 +62,10 @@ export async function getConversations(): Promise<
       conversations.push(conversation as { name: string; id: string });
     });
 
-    return conversations;
+    return { data: conversations, loading: false };
   } catch (error) {
     console.log(error);
-    return null;
+    return { data: null, loading: false };
   }
 }
 
@@ -66,32 +79,29 @@ export function getLocalRecentDocs(): string | null {
   return doc;
 }
 
+export function getLocalPrompt(): string | null {
+  const prompt = localStorage.getItem('DocsGPTPrompt');
+  return prompt;
+}
+
 export function setLocalApiKey(key: string): void {
   localStorage.setItem('DocsGPTApiKey', key);
 }
 
-export function setLocalRecentDocs(doc: Doc): void {
+export function setLocalPrompt(prompt: string): void {
+  localStorage.setItem('DocsGPTPrompt', prompt);
+}
+
+export function setLocalRecentDocs(doc: Doc | null): void {
   localStorage.setItem('DocsGPTRecentDocs', JSON.stringify(doc));
-  let namePath = doc.name;
-  if (doc.language === namePath) {
-    namePath = '.project';
-  }
 
   let docPath = 'default';
-  if (doc.location === 'local') {
+  if (doc?.type === 'local') {
     docPath = 'local' + '/' + doc.name + '/';
-  } else if (doc.location === 'remote') {
-    docPath =
-      doc.language + '/' + namePath + '/' + doc.version + '/' + doc.model + '/';
   }
-  const apiHost = import.meta.env.VITE_API_HOST || 'https://docsapi.arc53.com';
-  fetch(apiHost + '/api/docs_check', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
+  userService
+    .checkDocs({
       docs: docPath,
-    }),
-  }).then((response) => response.json());
+    })
+    .then((response) => response.json());
 }

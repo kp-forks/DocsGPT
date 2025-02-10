@@ -1,0 +1,22 @@
+{
+  "Hosting-the-app": {
+    "title": "☁️ Hosting DocsGPT",
+    "href": "/Deploying/Hosting-the-app"
+  },
+  "Quickstart": {
+    "title": "⚡️Quickstart",
+    "href": "/Deploying/Quickstart"
+  },
+  "Development-Environment": {
+    "title": "🛠️Development Environment",
+    "href": "/Deploying/Development-Environment"
+  },
+  "Railway-Deploying": {
+    "title": "🚂Deploying on Railway",
+    "href": "/Deploying/Railway-Deploying"
+  },
+  "Kubernetes-Deploying": {
+    "title": "☸️Deploying on Kubernetes",
+    "href": "/Deploying/Kubernetes-Deploying"
+  }
+}
