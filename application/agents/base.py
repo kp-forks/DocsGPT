@@ -7,6 +7,10 @@ from bson.objectid import ObjectId
 
 from application.agents.tools.tool_action_parser import ToolActionParser
 from application.agents.tools.tool_manager import ToolManager
+from application.core.json_schema_utils import (
+    JsonSchemaValidationError,
+    normalize_json_schema_payload,
+)
 from application.core.mongo_db import MongoDB
 from application.core.settings import settings
 from application.llm.handlers.handler_creator import LLMHandlerCreator
@@ -63,7 +67,12 @@ class BaseAgent(ABC):
             llm_name if llm_name else "default"
         )
         self.attachments = attachments or []
-        self.json_schema = json_schema
+        self.json_schema = None
+        if json_schema is not None:
+            try:
+                self.json_schema = normalize_json_schema_payload(json_schema)
+            except JsonSchemaValidationError as exc:
+                logger.warning("Ignoring invalid JSON schema payload: %s", exc)
         self.limited_token_mode = limited_token_mode
         self.token_limit = token_limit
         self.limited_request_mode = limited_request_mode
