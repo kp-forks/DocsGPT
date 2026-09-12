@@ -21,6 +21,12 @@
 # sibling kernels or bypass the session cap). The gateway fails closed if the
 # token is unset.
 #
+# The image is built from deployment/sandbox and published as
+# arc53/docsgpt-sandbox (also ghcr.io/arc53/docsgpt-sandbox) by the release
+# workflow, with `develop` tracking main. It is pulled here by the floating
+# `latest` tag: pin it to a release tag if you would rather not pick up a new
+# runner runtime on a pod restart.
+#
 # On Linux prod, schedule this onto a gVisor `runsc` RuntimeClass for kernel
 # isolation (uncomment `runtimeClassName` once the node has it installed).
 #
