@@ -142,11 +142,15 @@ jobs:
       - name: Create and push multi-arch manifests
         env:
           TAG: ${{ env.RELEASE_TAG }}${{ matrix.variant }}
-          LATEST: latest${{ matrix.variant }}
+          # A stable release moves `latest`; a prerelease published by hand
+          # moves only its own tag (the release trigger fires for those too).
+          LATEST: ${{ (inputs.version || !github.event.release.prerelease) && format('latest{0}', matrix.variant) || '' }}
         run: |
           set -e
+          # $LATEST is deliberately unquoted: it is empty for a prerelease, and
+          # an empty word would create a manifest named "$repo:".
           for repo in "$DOCKERHUB_NAMESPACE/docsgpt" "ghcr.io/${{ github.repository_owner }}/docsgpt"; do
-            for name in "$TAG" "$LATEST"; do
+            for name in "$TAG" $LATEST; do
               docker manifest create "$repo:$name" \
                 --amend "$repo:$TAG-amd64" \
                 --amend "$repo:$TAG-arm64"

@@ -38,8 +38,10 @@ permissions:
 env:
   # The version being published, or `develop` for a push to main.
   RELEASE_TAG: ${{ inputs.version || github.event.release.tag_name || 'develop' }}
-  # A release also moves `latest`; a push to main moves nothing but `develop`.
-  MOVING_TAG: ${{ (inputs.version || github.event.release.tag_name) && 'latest' || '' }}
+  # A stable release also moves `latest`. A push to main moves nothing but
+  # `develop`, and a prerelease published by hand moves only its own tag: the
+  # release trigger fires for those too, and they must not become `latest`.
+  MOVING_TAG: ${{ (inputs.version || (github.event.release.tag_name && !github.event.release.prerelease)) && 'latest' || '' }}
 
 jobs:
   build:

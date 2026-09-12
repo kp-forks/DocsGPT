@@ -26,6 +26,10 @@ permissions:
 env:
   # The tag being published: passed in by the caller, or the release's own.
   RELEASE_TAG: ${{ inputs.version || github.event.release.tag_name }}
+  # A stable release also moves `latest`. A prerelease published by hand moves
+  # only its own tag: the release trigger fires for those too, and they must not
+  # become `latest`.
+  MOVING_TAG: ${{ (inputs.version || !github.event.release.prerelease) && 'latest' || '' }}
 
 jobs:
   build:
@@ -139,10 +143,13 @@ jobs:
       - name: Create and push multi-arch manifests
         env:
           TAG: ${{ env.RELEASE_TAG }}
+          MOVING: ${{ env.MOVING_TAG }}
         run: |
           set -e
+          # $MOVING is deliberately unquoted: it is empty for a prerelease, and
+          # an empty word would create a manifest named "$repo:".
           for repo in "$DOCKERHUB_NAMESPACE/docsgpt-fe" "ghcr.io/${{ github.repository_owner }}/docsgpt-fe"; do
-            for name in "$TAG" latest; do
+            for name in "$TAG" $MOVING; do
               docker manifest create "$repo:$name" \
                 --amend "$repo:$TAG-amd64" \
                 --amend "$repo:$TAG-arm64"
