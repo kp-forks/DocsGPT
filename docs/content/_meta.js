@@ -13,8 +13,5 @@ export default {
     "href": "https://gptcloud.arc53.com/"
   },
   "Guides": "Guides",
-  "changelog": {
-    "title": "Changelog",
-    "display": "hidden"
-  }
+  "changelog": "Changelog"
 }

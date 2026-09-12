@@ -1,3 +1,93 @@
 ---
 title: 'Changelog'
+description: What changed in each DocsGPT release, with links to the upgrade steps an existing deployment needs.
 ---
+
+import { Callout } from 'nextra/components'
+
+# Changelog
+
+The notable changes in each release. Every release on GitHub also carries
+[auto-generated notes](https://github.com/arc53/DocsGPT/releases) listing every merged pull
+request, and [Upgrading](/upgrading) covers the steps an existing deployment has to take.
+
+## 0.20.0
+
+### DocsGPT installs from PyPI
+
+The backend is published as [`docsgpt`](https://pypi.org/project/docsgpt/): the API server, the
+web UI, the Celery worker and the maintenance scripts in one package, behind a single `docsgpt`
+command. `pip install docsgpt` then `docsgpt api` serves the API and the UI on one port, and
+`docsgpt worker` runs the worker. The optional engines are extras, `docsgpt[docling]` and
+`docsgpt[milvus]`. See [Install with pip](/Deploying/Pip-Install).
+
+### The Python package is now `docsgpt`
+
+The import package was renamed from `application` to `docsgpt`, the name it has on PyPI. Entry
+points move with it: `celery -A docsgpt.app.celery worker` and
+`uvicorn docsgpt.asgi:asgi_app`. The old spellings still run for this release and print a
+`FutureWarning`, and Celery tasks queued under the old names are still consumed. The
+[upgrade guide](/upgrading) has the details.
+
+### Smaller default install and images
+
+The document and vector-store engines that pulled the heaviest dependencies are now extras
+rather than defaults, so a stock install no longer carries PyTorch or the CUDA stack. The
+published image follows the same split: the default `arc53/docsgpt` image is the slim one, and
+`arc53/docsgpt:<version>-docling` bakes in the docling parser engine, its models and tesseract
+for OCR.
+
+### Faster embeddings, pinned to your installation
+
+Embeddings run through [FastEmbed](https://github.com/qdrant/fastembed) on ONNX Runtime. Query
+embedding now happens on the Celery worker rather than in the API process, which keeps the API
+small; a worker consuming the `embeddings` queue is required for search. The embedding model is
+pinned to the installation instead of following the release, so an upgrade never silently
+changes the model behind an existing index, and a query against an index built with a different
+model is now warned about. New installs default to
+`ibm-granite/granite-embedding-311m-multilingual-r2`, which is multilingual with a 32k-token
+context. The `reembed` script rebuilds vectors in place from the chunk text already stored.
+
+<Callout type="warning">
+  If you start your worker with an explicit `-Q`, add the `embeddings` queue. See
+  [Upgrading](/upgrading) for the one-line change and what happens without it.
+</Callout>
+
+### Broader document support
+
+Parsing gained support for more document, spreadsheet, presentation, EPUB, XHTML and image
+formats, along with a reworked OCR path. Parsing behaviour is configurable: markdown conversion,
+structured output, table reconstruction and improved PDF handling.
+
+### Agents and workflows
+
+Agents no longer require a source. The synthetic "Default" source is gone, and an agent with no
+source or retriever is a valid agent that lists and answers normally. Workflow agents can be
+exported and imported as files, so a workflow can move between deployments or into version
+control.
+
+Artifact and tool-call handling was hardened throughout: durable tasks retry rather than lose
+work on resume, tool calls are validated more strictly, and sandbox sessions are steadier.
+
+### Chat and attachments
+
+Cross-turn chaining against the Responses API is now bounded, conversation compression persists
+across turns instead of being recomputed, and requests carry prompt-cache hints. Attachments
+carry provenance through parsing, unparseable chat attachments are refused at upload rather than
+failing mid-answer, and the composer guards against sending while an attachment is still
+processing.
+
+### Widget
+
+The React widget got a UI refresh and an expand and collapse toggle, and was brought back in
+line with the current API contract. The npm packages `docsgpt` and `docsgpt-react` are published
+at 0.7.1.
+
+### Also in this release
+
+- The code-execution sandbox runner is published as `arc53/docsgpt-sandbox`, so the Kubernetes
+  manifest no longer needs an image you build yourself.
+- Releases publish the Docker images and the PyPI package from the release workflow.
+- The [architecture guide](/Guides/Architecture) was rewritten.
+- Markdown code spans are no longer corrupted by citation rendering.
+- `setup.ps1` runs on Windows PowerShell 5.1 again.
