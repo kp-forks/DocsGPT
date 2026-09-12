@@ -14,11 +14,25 @@ on:
         description: Release tag to build and push (the images are tagged with it)
         type: string
         required: true
+      move_latest:
+        description: Also move the `latest` tag onto this build
+        type: boolean
+        default: true
     secrets:
       DOCKER_USERNAME:
         required: true
       DOCKER_PASSWORD:
         required: true
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release tag to build and push (the images are tagged with it)
+        type: string
+        required: true
+      move_latest:
+        description: Also move the `latest` tag onto this build
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -26,10 +40,6 @@ permissions:
 env:
   # The tag being published: passed in by the caller, or the release's own.
   RELEASE_TAG: ${{ inputs.version || github.event.release.tag_name }}
-  # A stable release also moves `latest`. A prerelease published by hand moves
-  # only its own tag: the release trigger fires for those too, and they must not
-  # become `latest`.
-  MOVING_TAG: ${{ (inputs.version || !github.event.release.prerelease) && 'latest' || '' }}
 
 jobs:
   build:
@@ -58,6 +68,13 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          # Build the source the tag names, not whatever the run was started
+          # from: a manual run dispatched off main would otherwise publish the
+          # current branch under an older version's tags. Resolved under
+          # refs/tags/ so a version that is also a branch name cannot win, and a
+          # version with no tag fails here instead of mislabelling an image.
+          # Falls back to the run's own ref for the push that tags `develop`.
+          ref: ${{ inputs.version && format('refs/tags/{0}', inputs.version) || github.ref }}
           persist-credentials: false
 
       - name: Set up Docker Buildx
@@ -143,13 +160,23 @@ jobs:
       - name: Create and push multi-arch manifests
         env:
           TAG: ${{ env.RELEASE_TAG }}
-          MOVING: ${{ env.MOVING_TAG }}
+          # Raw facts; the shell below decides from them what `latest` does.
+          IS_PRERELEASE: ${{ github.event.release.prerelease || false }}
+          MOVE_LATEST: ${{ inputs.move_latest }}
         run: |
           set -e
-          # $MOVING is deliberately unquoted: it is empty for a prerelease, and
-          # an empty word would create a manifest named "$repo:".
+          # `latest` follows this build, except for a release marked prerelease
+          # (the release trigger fires for those too) or a manual run that asked
+          # it not to. MOVE_LATEST is empty for a release event, where only the
+          # prerelease flag decides.
+          moving=latest
+          if [ "$IS_PRERELEASE" = true ] || [ "$MOVE_LATEST" = false ]; then
+            moving=""
+          fi
+          # $moving is deliberately unquoted: an empty word would create a
+          # manifest named "$repo:".
           for repo in "$DOCKERHUB_NAMESPACE/docsgpt-fe" "ghcr.io/${{ github.repository_owner }}/docsgpt-fe"; do
-            for name in "$TAG" $MOVING; do
+            for name in "$TAG" $moving; do
               docker manifest create "$repo:$name" \
                 --amend "$repo:$TAG-amd64" \
                 --amend "$repo:$TAG-arm64"

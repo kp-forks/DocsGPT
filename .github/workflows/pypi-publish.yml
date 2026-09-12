@@ -6,6 +6,13 @@ name: Publish to PyPI
 # creates with GITHUB_TOKEN never fires the release trigger); a release created
 # by hand publishes through that trigger; a manual run publishes to TestPyPI
 # by default.
+#
+# Attestations are on only when this file is the workflow that STARTED the run.
+# A PEP 740 attestation records the entry workflow in its certificate, while
+# trusted publishing matches the called workflow, so when backend-release calls
+# this one the two disagree and PyPI rejects the upload with "Certificate's
+# Build Config URI ... does not match expected Trusted Publisher". No publisher
+# configuration satisfies both, so the release chain publishes unattested.
 
 on:
   release:
@@ -116,6 +123,9 @@ jobs:
           path: dist/
 
       - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          # Only when this workflow is the entry point: see the note at the top.
+          attestations: ${{ contains(github.workflow_ref, '/pypi-publish.yml@') }}
 
   publish-testpypi:
     if: inputs.target == 'testpypi'
@@ -134,6 +144,8 @@ jobs:
 
       - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
         with:
+          # Only when this workflow is the entry point: see the note at the top.
+          attestations: ${{ contains(github.workflow_ref, '/pypi-publish.yml@') }}
           repository-url: https://test.pypi.org/legacy/
           # TestPyPI is a rehearsal target: a version that is already there
           # must not fail the run.
