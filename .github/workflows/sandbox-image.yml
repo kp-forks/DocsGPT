@@ -80,6 +80,11 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          # Build the source the tag names, not whatever the run was started
+          # from: a manual run dispatched off main would otherwise publish the
+          # current branch under an older version's tags. Empty for a push,
+          # where the checked-out commit is the one being tagged `develop`.
+          ref: ${{ inputs.version || github.ref }}
           persist-credentials: false
 
       - name: Set up Docker Buildx
